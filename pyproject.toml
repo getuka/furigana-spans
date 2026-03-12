@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "furigana-spans"
+version = "0.1.0"
+description = "Structured Japanese ruby analysis and reading prediction library"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+  {name = "OpenAI"}
+]
+dependencies = [
+  "SudachiPy>=0.6.10",
+  "sudachidict_core>=20250129",
+]
+keywords = ["japanese", "ruby", "furigana", "sudachi", "tts"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "License :: OSI Approved :: MIT License",
+  "Natural Language :: Japanese",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["furigana_spans*"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
