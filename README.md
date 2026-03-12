@@ -37,64 +37,7 @@ config = AnalyzerConfig(
 analyzer = RubyAnalyzer(config)
 analysis = analyzer.analyze("日本橋に行く")
 
-print(analysis.to_json())
-```
-
-出力例:
-
-```json
-{
-  "text": "日本橋に行く",
-  "normalized_text": "日本橋に行く",
-  "tokens": [
-    {
-      "surface": "日本橋",
-      "start": 0,
-      "end": 3,
-      "pos": ["名詞", "固有名詞", "地名", "一般", "*", "*"],
-      "base_form": "日本橋",
-      "normalized_form": "日本橋",
-      "reading": "にほんばし",
-      "pronunciation": "にほんばし",
-      "is_oov": false,
-      "dictionary_id": 0,
-      "candidates": [
-        {"reading": "にほんばし", "score": 0.9, "source": "sudachi", "is_selected": true},
-        {"reading": "にっぽんばし", "score": 0.6, "source": "ambiguity_lexicon", "is_selected": false}
-      ],
-      "metadata": {}
-    }
-  ],
-  "spans": [
-    {
-      "surface": "日本橋",
-      "reading": "にほんばし",
-      "start": 0,
-      "end": 3,
-      "token_indices": [0],
-      "pos": ["名詞", "固有名詞", "地名", "一般", "*", "*"],
-      "normalized_form": "日本橋",
-      "source": "ambiguity_resolver",
-      "candidates": [
-        {"reading": "にほんばし", "score": 0.9, "source": "sudachi", "is_selected": true},
-        {"reading": "にっぽんばし", "score": 0.6, "source": "ambiguity_lexicon", "is_selected": false}
-      ],
-      "metadata": {"span_type": "word"}
-    }
-  ],
-  "warnings": [],
-  "metadata": {
-    "span_unit": "word",
-    "reading_script": "hiragana"
-  }
-}
-```
-
-## 公開 API
-
-```python
-from furigana_spans import AnalyzerConfig, RubyAnalyzer
-from furigana_spans.schema import ReadingCandidate, RubyAnalysis, RubySpan, RubyToken
+print(analysis)
 ```
 
 ## ユーザ辞書
