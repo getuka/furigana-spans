@@ -1,0 +1,23 @@
+# local data
+data/
+*.dic
+*.zip
+*.csv
+*.tsv
+
+# secrets / local config
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+
+# python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+dist/
+build/
+*.egg-info/
