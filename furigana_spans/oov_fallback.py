@@ -67,5 +67,5 @@ class OovFallback:
         if contains_number(normalized) and normalized.isdigit():
             parsed = parse_number(normalized)
             if parsed is not None:
-                return to_sino_kana(parsed)
+                return normalize_reading(to_sino_kana(parsed), self._config.reading_script)
         return None

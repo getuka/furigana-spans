@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 from furigana_spans.script import normalize_reading, normalize_surface
 
@@ -19,6 +19,11 @@ class UserDictionaryEntry:
     base_form: str | None = None
     pos_prefix: tuple[str, ...] = ()
     source: str = "user_dict"
+    difficulty_score: float | None = None
+    difficulty_reasons: tuple[str, ...] = ()
+    always_ruby: bool = False
+    named_entity_type: str | None = None
+    tags: tuple[str, ...] = ()
 
     def matches(self, surface: str, base_form: str | None, pos: tuple[str, ...]) -> bool:
         """Return whether this entry matches a token."""
@@ -29,6 +34,17 @@ class UserDictionaryEntry:
         if self.pos_prefix and tuple(pos[: len(self.pos_prefix)]) != self.pos_prefix:
             return False
         return True
+
+    def to_metadata(self) -> dict[str, Any]:
+        """Return downstream metadata attached to the matching candidate."""
+        return {
+            "source": self.source,
+            "difficulty_score": self.difficulty_score,
+            "difficulty_reasons": self.difficulty_reasons,
+            "always_ruby": self.always_ruby,
+            "named_entity_type": self.named_entity_type,
+            "tags": self.tags,
+        }
 
 
 class UserDictionary:
@@ -88,4 +104,28 @@ class UserDictionary:
             base_form=item.get("base_form"),
             pos_prefix=pos_prefix,
             source=item.get("source", "user_dict"),
+            difficulty_score=_parse_optional_score(item.get("difficulty_score")),
+            difficulty_reasons=_parse_string_tuple(item.get("difficulty_reasons", ())),
+            always_ruby=bool(item.get("always_ruby", False)),
+            named_entity_type=item.get("named_entity_type"),
+            tags=_parse_string_tuple(item.get("tags", ())),
         )
+
+
+def _parse_optional_score(value: object) -> float | None:
+    if value is None:
+        return None
+    score = float(value)
+    if score < 0.0 or score > 1.0:
+        raise ValueError("difficulty_score must be in [0.0, 1.0]")
+    return score
+
+
+def _parse_string_tuple(value: object) -> tuple[str, ...]:
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        return (value,)
+    if not isinstance(value, (list, tuple)):
+        raise ValueError("Expected a string or a list of strings")
+    return tuple(str(item) for item in value)

@@ -14,6 +14,15 @@ class ReadingCandidate:
     score: float | None = None
     source: str = ""
     is_selected: bool = False
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class RubyDifficulty:
+    """Ruby annotation necessity / reading-risk score."""
+
+    score: float = 0.0
+    reasons: tuple[str, ...] = ()
 
 
 @dataclass(slots=True)
@@ -32,6 +41,7 @@ class RubyToken:
     dictionary_id: int | None = None
     candidates: list[ReadingCandidate] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
+    difficulty: RubyDifficulty | None = None
 
 
 @dataclass(slots=True)
@@ -48,6 +58,7 @@ class RubySpan:
     source: str = ""
     candidates: list[ReadingCandidate] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
+    difficulty: RubyDifficulty | None = None
 
 
 @dataclass(slots=True)

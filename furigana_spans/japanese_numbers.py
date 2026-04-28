@@ -142,6 +142,11 @@ def to_counter_reading(number: int, counter: str) -> str | None:
     return None
 
 
+def is_irregular_counter_reading(number: int, counter: str) -> bool:
+    """Return whether the number-counter pair has a special reading."""
+    return number in _SPECIAL_COUNTERS.get(counter, {})
+
+
 _SPECIAL_COUNTERS = {
     "人": {1: "ひとり", 2: "ふたり"},
     "日": {

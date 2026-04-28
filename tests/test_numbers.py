@@ -22,6 +22,17 @@ def test_number_rule_marks_compound_tokens() -> None:
     assert token.metadata["compound_surface"] == "3人"
 
 
+def test_number_rule_respects_katakana_output() -> None:
+    analyzer = RubyAnalyzer(AnalyzerConfig(reading_script="katakana"))
+    analysis = analyzer.analyze("3人で行く")
+
+    span = next(span for span in analysis.spans if span.surface == "3人")
+    token = next(token for token in analysis.tokens if token.metadata.get("compound_surface") == "3人")
+
+    assert span.reading == "サンニン"
+    assert token.metadata["compound_reading"] == "サンニン"
+
+
 def test_parse_number_accepts_mixed_full_width_and_kanji_numerals() -> None:
     assert parse_number("１万") == 10_000
     assert parse_number("３百") == 300

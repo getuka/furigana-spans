@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from furigana_spans.ambiguity import AmbiguityResolver
 from furigana_spans.backends.base import BaseTokenizerBackend
-from furigana_spans.backends.sudachi_backend import SudachiBackend
 from furigana_spans.candidate_generator import CandidateGenerator
 from furigana_spans.config import AnalyzerConfig
+from furigana_spans.difficulty import DifficultyEstimator
 from furigana_spans.normalizer import TextNormalizer
 from furigana_spans.number_rules import NumberRuleEngine
 from furigana_spans.oov_fallback import OovFallback
@@ -29,12 +29,17 @@ class RubyAnalyzer:
         """Initialize analyzer subcomponents."""
         self._config = config or AnalyzerConfig()
         self._normalizer = TextNormalizer()
-        self._backend = backend or SudachiBackend(self._config)
+        if backend is None:
+            from furigana_spans.backends.sudachi_backend import SudachiBackend
+
+            backend = SudachiBackend(self._config)
+        self._backend = backend
         self._candidate_generator = CandidateGenerator(self._config, self._backend)
         self._ambiguity_resolver = AmbiguityResolver(self._config)
         self._number_rules = NumberRuleEngine(self._config)
         self._oov_fallback = OovFallback(self._config)
         self._span_builder = SpanBuilder(self._config)
+        self._difficulty_estimator = DifficultyEstimator(self._config)
 
     def analyze(self, text: str) -> RubyAnalysis:
         """Analyze one sentence and predict ruby spans."""
@@ -48,7 +53,11 @@ class RubyAnalyzer:
             tokens = self._ambiguity_resolver.resolve(text, tokens)
         if self._config.enable_oov_fallback:
             tokens = self._oov_fallback.apply(text, tokens)
+        if self._config.enable_difficulty_scoring:
+            tokens = self._difficulty_estimator.score_tokens(text, tokens)
         spans = self._span_builder.build(text, tokens)
+        if self._config.enable_difficulty_scoring:
+            spans = self._difficulty_estimator.score_spans(text, tokens, spans)
         if any(token.reading is None for token in tokens if token.surface.strip()):
             warnings.append("Some tokens have no resolved reading.")
         return RubyAnalysis(

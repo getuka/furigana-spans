@@ -71,7 +71,14 @@ class SpanBuilder:
                 if candidate.reading == reading
             ]
             or token.candidates,
-            metadata={"span_type": "number_counter"},
+            metadata={
+                "span_type": "number_counter",
+                "compound_counter": token.metadata.get("compound_counter"),
+                "irregular_counter_reading": token.metadata.get(
+                    "irregular_counter_reading",
+                    False,
+                ),
+            },
         )
 
     def _should_emit(self, token: RubyToken) -> bool:

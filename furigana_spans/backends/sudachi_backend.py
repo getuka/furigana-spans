@@ -81,9 +81,20 @@ class SudachiBackend(BaseTokenizerBackend):
 
     @staticmethod
     def _build_dictionary(config: AnalyzerConfig):
-        """Construct a Sudachi dictionary with optional user dictionaries."""
-        if config.enable_user_dictionary and config.user_dictionary_paths:
-            sudachi_config = Config(system=config.dictionary, user=list(config.user_dictionary_paths))
+        """Construct a Sudachi dictionary with optional Sudachi user dictionaries.
+
+        ``AnalyzerConfig.user_dictionary_paths`` primarily points to this
+        package's JSON/JSONL user dictionary. Those files must not be passed to
+        Sudachi as compiled user dictionaries. Non-JSON paths are preserved for
+        users who intentionally pass compiled Sudachi user dictionaries.
+        """
+        sudachi_user_paths = [
+            path
+            for path in config.user_dictionary_paths
+            if not path.lower().endswith((".json", ".jsonl"))
+        ]
+        if config.enable_user_dictionary and sudachi_user_paths:
+            sudachi_config = Config(system=config.dictionary, user=sudachi_user_paths)
             return Dictionary(config=sudachi_config)
         return Dictionary(dict=config.dictionary)
 

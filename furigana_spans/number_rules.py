@@ -6,9 +6,14 @@ import re
 from dataclasses import replace
 
 from furigana_spans.config import AnalyzerConfig
-from furigana_spans.japanese_numbers import is_number_like, parse_number, to_counter_reading
+from furigana_spans.japanese_numbers import (
+    is_irregular_counter_reading,
+    is_number_like,
+    parse_number,
+    to_counter_reading,
+)
 from furigana_spans.schema import ReadingCandidate, RubyToken
-from furigana_spans.script import contains_number
+from furigana_spans.script import contains_number, normalize_reading
 
 _COMPOUND_COUNTER_RE = re.compile(
     r"^(?P<number>[0-9０-９〇零一二三四五六七八九十百千万億兆]+)(?P<counter>人|日|本|匹|杯|分|回|階|冊|枚|個|年|歳)$"
@@ -50,7 +55,7 @@ class NumberRuleEngine:
             return None
         number_text = match.group("number")
         counter = match.group("counter")
-        reading = _build_counter_reading(number_text, counter)
+        reading = self._build_counter_reading(number_text, counter)
         if reading is None:
             return None
         return _apply_compound_to_single_token(token, reading)
@@ -64,7 +69,7 @@ class NumberRuleEngine:
             return None
         if second.surface not in _SUPPORTED_COUNTERS:
             return None
-        reading = _build_counter_reading(first.surface, second.surface)
+        reading = self._build_counter_reading(first.surface, second.surface)
         if reading is None:
             return None
         merged_surface = first.surface + second.surface
@@ -77,6 +82,10 @@ class NumberRuleEngine:
                 "compound_end": second.end,
                 "compound_token_count": 2,
                 "compound_counter": second.surface,
+                "irregular_counter_reading": _is_irregular_counter(
+                    first.surface,
+                    second.surface,
+                ),
             },
         )
         second_token = replace(
@@ -89,15 +98,27 @@ class NumberRuleEngine:
         )
         return first_token, second_token
 
+    def _build_counter_reading(self, number_text: str, counter: str) -> str | None:
+        number = parse_number(number_text)
+        if number is None:
+            return None
+        reading = to_counter_reading(number, counter)
+        if reading is None:
+            return None
+        return normalize_reading(reading, self._config.reading_script)
 
-def _build_counter_reading(number_text: str, counter: str) -> str | None:
+def _is_irregular_counter(number_text: str, counter: str) -> bool:
     number = parse_number(number_text)
     if number is None:
-        return None
-    return to_counter_reading(number, counter)
+        return False
+    return is_irregular_counter_reading(number, counter)
 
 
 def _apply_compound_to_single_token(token: RubyToken, reading: str) -> RubyToken:
+    match = _COMPOUND_COUNTER_RE.fullmatch(token.surface)
+    irregular = False
+    if match is not None:
+        irregular = _is_irregular_counter(match.group("number"), match.group("counter"))
     candidates = [
         ReadingCandidate(
             reading=reading,
@@ -117,5 +138,6 @@ def _apply_compound_to_single_token(token: RubyToken, reading: str) -> RubyToken
             "compound_reading": reading,
             "compound_end": token.end,
             "compound_token_count": 1,
+            "irregular_counter_reading": irregular,
         },
     )

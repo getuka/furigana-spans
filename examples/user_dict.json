@@ -1,4 +1,17 @@
 [
   {"surface": "日本橋", "reading": "にほんばし"},
-  {"surface": "重粒子線", "reading": "じゅうりゅうしせん"}
+  {
+    "surface": "重粒子線",
+    "reading": "じゅうりゅうしせん",
+    "difficulty_score": 0.82,
+    "difficulty_reasons": ["domain_term"],
+    "tags": ["medical", "technical_term"]
+  },
+  {
+    "surface": "四月一日",
+    "reading": "わたぬき",
+    "always_ruby": true,
+    "named_entity_type": "person_name",
+    "difficulty_reasons": ["rare_name"]
+  }
 ]

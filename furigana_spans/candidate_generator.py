@@ -72,14 +72,21 @@ class CandidateGenerator:
                 ),
             )
 
+        user_dictionary_matches = []
         if self._user_dict is not None:
-            for entry in self._user_dict.lookup(token.surface, token.base_form, token.pos):
+            user_dictionary_matches = self._user_dict.lookup(
+                token.surface,
+                token.base_form,
+                token.pos,
+            )
+            for entry in user_dictionary_matches:
                 self._upsert_candidate(
                     table,
                     ReadingCandidate(
                         reading=entry.reading,
                         score=0.95,
                         source=entry.source,
+                        metadata={"user_dictionary": entry.to_metadata()},
                     ),
                 )
 
@@ -103,9 +110,12 @@ class CandidateGenerator:
             return
         existing_score = existing.score if existing.score is not None else -1.0
         new_score = candidate.score if candidate.score is not None else -1.0
-        if new_score > existing_score:
+        if new_score >= existing_score:
             existing.score = candidate.score
             existing.source = candidate.source
+            existing.metadata = dict(candidate.metadata)
+        elif candidate.metadata:
+            existing.metadata.update(candidate.metadata)
         existing.is_selected = existing.is_selected or candidate.is_selected
 
     def _replace_candidates(

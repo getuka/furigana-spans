@@ -7,6 +7,7 @@ from dataclasses import replace
 from furigana_spans.config import AnalyzerConfig
 from furigana_spans.lexicon import AmbiguityProfile, BUILTIN_AMBIGUITY_PROFILES
 from furigana_spans.schema import ReadingCandidate, RubyToken
+from furigana_spans.script import normalize_reading, normalize_surface
 
 
 class AmbiguityResolver:
@@ -16,7 +17,8 @@ class AmbiguityResolver:
         self._config = config
         self._profiles_by_surface: dict[str, list[AmbiguityProfile]] = {}
         for profile in BUILTIN_AMBIGUITY_PROFILES:
-            self._profiles_by_surface.setdefault(profile.surface, []).append(profile)
+            surface = normalize_surface(profile.surface)
+            self._profiles_by_surface.setdefault(surface, []).append(profile)
 
     def resolve(self, text: str, tokens: list[RubyToken]) -> list[RubyToken]:
         """Resolve ambiguous token readings in sentence context."""
@@ -25,12 +27,15 @@ class AmbiguityResolver:
             if len(token.candidates) <= 1:
                 resolved.append(token)
                 continue
-            profiles = self._profiles_by_surface.get(token.surface)
+            profiles = self._profiles_by_surface.get(normalize_surface(token.surface))
             if not profiles:
                 resolved.append(self._select_highest(token))
                 continue
             scored = [self._score_candidate(text, token, candidate, profiles) for candidate in token.candidates]
-            scored.sort(key=lambda item: item.score or -1.0, reverse=True)
+            scored.sort(
+                key=lambda item: item.score if item.score is not None else -1.0,
+                reverse=True,
+            )
             for candidate in scored:
                 candidate.is_selected = False
             scored[0].is_selected = True
@@ -54,12 +59,19 @@ class AmbiguityResolver:
     ) -> ReadingCandidate:
         """Score one reading candidate in sentence context."""
         score = candidate.score if candidate.score is not None else 0.5
-        if token.reading == candidate.reading:
-            score += 0.05
         for profile in profiles:
-            if profile.reading != candidate.reading:
+            profile_reading = normalize_reading(profile.reading, self._config.reading_script)
+            if profile_reading != candidate.reading:
                 continue
-            score = max(score, profile.base_score)
+            # For curated ambiguous surfaces, the backend's primary reading is
+            # only a weak prior. Sudachi often returns a high-confidence
+            # default reading even when the sentence context clearly indicates
+            # another reading, e.g. 大阪の日本橋 -> にっぽんばし. Use the
+            # profile score as the main prior and add only a small stability
+            # bias for the backend reading.
+            score = profile.base_score
+            if token.reading == candidate.reading:
+                score += 0.03
             for keyword in profile.positive_keywords:
                 if keyword in text:
                     score += 0.12
@@ -72,7 +84,7 @@ class AmbiguityResolver:
     def _select_highest(token: RubyToken) -> RubyToken:
         candidates = sorted(
             [replace(item, is_selected=False) for item in token.candidates],
-            key=lambda item: item.score or -1.0,
+            key=lambda item: item.score if item.score is not None else -1.0,
             reverse=True,
         )
         candidates[0].is_selected = True
